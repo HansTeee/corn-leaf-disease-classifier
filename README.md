@@ -15,7 +15,7 @@ license: mit
 
 Upload a photo of a corn leaf and get a probability for **Common rust**, **Northern Leaf Blight** or **Healthy**.
 
-**▶ Live demo: _[LIVE URL — add after the Space is created]_**
+**▶ Live demo: [huggingface.co/spaces/HansTee89411/corn-leaf-disease-classifier](https://huggingface.co/spaces/HansTee89411/corn-leaf-disease-classifier)**
 
 ![The app in use](docs/screenshot.png)
 
