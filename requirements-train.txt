@@ -1,0 +1,6 @@
+# Extra packages for EDA and training (python -m src.eda / src.train).
+# The deployed app only needs requirements.txt.
+-r requirements.txt
+matplotlib==3.11.2
+scikit-learn==1.9.1
+kaggle==2.2.5

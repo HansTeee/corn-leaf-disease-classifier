@@ -1,0 +1,12 @@
+data/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Training by-products (regenerate with python -m src.train)
+models/quick/
+models/checkpoints/
+docs/quick/
+*.log
+.gradio/

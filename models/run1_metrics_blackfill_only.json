@@ -1,0 +1,154 @@
+{
+  "test_accuracy": 0.9816,
+  "per_class": {
+    "Common rust": {
+      "precision": 0.9779,
+      "recall": 0.9944,
+      "f1-score": 0.9861,
+      "support": 178.0
+    },
+    "Northern Leaf Blight": {
+      "precision": 0.9928,
+      "recall": 0.9452,
+      "f1-score": 0.9684,
+      "support": 146.0
+    },
+    "Healthy": {
+      "precision": 0.9765,
+      "recall": 1.0,
+      "f1-score": 0.9881,
+      "support": 166.0
+    }
+  },
+  "confusion_matrix": {
+    "order": [
+      "Common rust",
+      "Northern Leaf Blight",
+      "Healthy"
+    ],
+    "rows_true_cols_pred": [
+      [
+        177,
+        1,
+        0
+      ],
+      [
+        4,
+        138,
+        4
+      ],
+      [
+        0,
+        0,
+        166
+      ]
+    ]
+  },
+  "n_test": 490,
+  "shortcut_test_nlb": {
+    "n_images": 146,
+    "original_photo": {
+      "Common rust": 0.0411,
+      "Northern Leaf Blight": 0.9315,
+      "Healthy": 0.0274
+    },
+    "black_background": {
+      "Common rust": 0.2808,
+      "Northern Leaf Blight": 0.6164,
+      "Healthy": 0.1027
+    },
+    "grey_fill_background": {
+      "Common rust": 0.6233,
+      "Northern Leaf Blight": 0.3493,
+      "Healthy": 0.0274
+    }
+  },
+  "confident_mistakes": [
+    {
+      "file": "c4eb96b2-1345-46d0-a796-161042da21df___RS_NLB 0824 copy.jpg",
+      "true": "Northern Leaf Blight",
+      "pred": "Healthy",
+      "confidence": 0.9989
+    },
+    {
+      "file": "6fd2d660-7294-4a2c-8626-27228b1c8b70___RS_NLB 3627.JPG",
+      "true": "Northern Leaf Blight",
+      "pred": "Common rust",
+      "confidence": 0.9986
+    },
+    {
+      "file": "699bf6c9-fe54-4f33-84c2-559329820008___RS_NLB 4083.JPG",
+      "true": "Northern Leaf Blight",
+      "pred": "Healthy",
+      "confidence": 0.8945
+    },
+    {
+      "file": "8970b98a-13dc-4293-8795-33436cef05e7___RS_NLB 3559.JPG",
+      "true": "Northern Leaf Blight",
+      "pred": "Common rust",
+      "confidence": 0.873
+    },
+    {
+      "file": "6544d35f-ffb9-4a00-8240-c6f50c4e5e41___RS_NLB 3500.JPG",
+      "true": "Northern Leaf Blight",
+      "pred": "Healthy",
+      "confidence": 0.8473
+    },
+    {
+      "file": "024fb674-fdcb-4777-a8d6-8a13abb58d8f___RS_NLB 3992.JPG",
+      "true": "Northern Leaf Blight",
+      "pred": "Common rust",
+      "confidence": 0.7057
+    },
+    {
+      "file": "0a62fe5a-22db-42e2-bca0-53a8dcfd8129___RS_NLB 0810.JPG",
+      "true": "Northern Leaf Blight",
+      "pred": "Healthy",
+      "confidence": 0.6728
+    },
+    {
+      "file": "RS_Rust 2394.JPG",
+      "true": "Common rust",
+      "pred": "Northern Leaf Blight",
+      "confidence": 0.6322
+    },
+    {
+      "file": "1d53e037-ce69-43af-b814-769eedde54c8___RS_NLB 3628.JPG",
+      "true": "Northern Leaf Blight",
+      "pred": "Common rust",
+      "confidence": 0.5525
+    }
+  ],
+  "training_date": "2026-11-09T18:36:57",
+  "img_size": 224,
+  "quick_mode": false,
+  "epochs_run": {
+    "stage1": 10,
+    "stage2": 4
+  },
+  "params": {
+    "total": 2261827,
+    "trainable_stage2": 1865283
+  },
+  "model_file_mb": 9.65,
+  "augmentation_step_time_s": {
+    "no augmentation": 0.2958,
+    "all augmentation": 0.2831,
+    "augmentation minus rotation": 0.28
+  },
+  "wall_clock_s": {
+    "stage1": 308,
+    "stage2": 177,
+    "training_total": 485,
+    "script_total": 566
+  },
+  "background_fix": "black backgrounds replaced: random colour (train), grey (val/test)",
+  "split": "grouped by original photo (see src/data.py), ~70/15/15",
+  "versions": {
+    "python": "3.13.9",
+    "tensorflow": "2.21.0",
+    "keras": "3.15.1",
+    "numpy": "2.5.4"
+  },
+  "cpu_threads": 24
+}
