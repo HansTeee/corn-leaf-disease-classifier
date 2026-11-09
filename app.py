@@ -1,109 +1,97 @@
 """
-Phase 3: Gradio web app for the corn leaf disease classifier.
+Streamlit web app for the corn leaf disease classifier.
 
-    python app.py      -> open http://127.0.0.1:7860
+    streamlit run app.py      -> opens http://localhost:8501
+
+WHY Streamlit (not Gradio): Hugging Face Spaces now charges for hosting Gradio
+apps, while Streamlit Community Cloud hosts Streamlit apps for free, straight
+from the GitHub repo.
 """
-import json
-import os
 from pathlib import Path
 
-os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
-
-import gradio as gr
-import numpy as np
-import tensorflow as tf
+import streamlit as st
 from PIL import Image
 
-from src.data import fill_background
+from src import inference
 
-ROOT = Path(__file__).resolve().parent  # relative paths: works locally AND on HF Spaces
-IMG_SIZE = 224
-LOW_CONFIDENCE = 0.6
-DISPLAY = {
-    "Corn_(maize)___Common_rust_": "Common rust",
-    "Corn_(maize)___Northern_Leaf_Blight": "Northern Leaf Blight",
-    "Corn_(maize)___healthy": "Healthy",
-}
+ROOT = Path(__file__).resolve().parent
+EXAMPLES_DIR = ROOT / "docs" / "examples"
+
+st.set_page_config(page_title="Corn Leaf Disease Classifier", page_icon="🌽", layout="centered")
+
 
 # ---------------------------------------------------------------------------
-# Load ONCE, at startup.
-# WHY: Gradio calls predict() for every image submitted. Loading a 10 MB model
-# inside predict() would add seconds to every single request.
+# Load ONCE.
+# WHY @st.cache_resource: Streamlit re-runs this whole script top to bottom on
+# every click and upload. Without caching, it would reload the 10 MB model each
+# time. With it, the model is loaded on the first visit and then kept in memory
+# for every later visitor.
 # ---------------------------------------------------------------------------
-MODEL = tf.keras.models.load_model(ROOT / "models" / "corn_disease_model.keras", compile=False)
-# WHY read the names from the file: index i of the model output means
-# CLASS_NAMES[i], in the order training used. Hard-coding a list here risks a
-# silent mismatch that mislabels every prediction.
-with open(ROOT / "models" / "class_names.json") as f:
-    CLASS_NAMES = json.load(f)
+@st.cache_resource
+def get_model():
+    return inference.load()
 
 
-def preprocess(img: Image.Image) -> np.ndarray:
-    """
-    Must match what the model saw at test time, step for step:
-    1. convert("RGB") - a PNG with transparency has 4 channels (RGBA), a
-       greyscale photo has 1; the model needs exactly 3 or it crashes.
-    2. resize to 224x224, bilinear - same as image_dataset_from_directory.
-    3. add a batch dimension - models take a batch of images: (1, 224, 224, 3).
-    4. replace a black background with grey - the same fix applied to the
-       test set (only triggers when >5% of the image is pure black).
-
-    NOT here: mobilenet_v2.preprocess_input. The model has that scaling built
-    in as its first layer, so it expects raw 0-255 pixels. Applying it here
-    too would scale the pixels twice and quietly break every prediction.
-    """
-    img = img.convert("RGB").resize((IMG_SIZE, IMG_SIZE), Image.BILINEAR)
-    x = np.asarray(img, dtype=np.float32)[None, ...]
-    return fill_background(tf.constant(x), training=False).numpy()
-
-
-def predict(img):
-    if img is None:
-        return None, ""
-    probs = MODEL.predict(preprocess(img), verbose=0)[0]
-    # WHY return all three: a 51/49 split and a 99/1 split are very different
-    # answers, but would show the same single winning label.
-    result = {DISPLAY[c]: float(p) for c, p in zip(CLASS_NAMES, probs)}
-
-    top = float(probs.max())
-    if top < LOW_CONFIDENCE:
-        # WHY: softmax ALWAYS produces three numbers that sum to 1 - even for a
-        # photo of a cat. The model cannot say "I don't know", so the UI must.
-        note = (f"⚠️ **Uncertain ({top:.0%} top confidence).** The model isn't sure. "
-                "This may not be a single corn leaf, or it may be a disease the model "
-                "was never trained on. Don't rely on this result.")
-    else:
-        note = (f"Top prediction confidence: {top:.0%}. High confidence does **not** mean "
-                "correct: any image gets a confident answer if it looks enough like a "
-                "training image.")
-    return result, note
-
-
-EXAMPLES = sorted(str(p.relative_to(ROOT)) for p in (ROOT / "docs" / "examples").glob("*.*"))
-
-DESCRIPTION = """
-**Trained on PlantVillage lab images. Corn only, three classes: Common rust, Northern Leaf Blight, Healthy.**
-
-The training photos are single detached leaves on plain backgrounds under even lighting.
-Field photos (whole plants, mixed backgrounds, sunlight) are much harder, and accuracy on them is lower.
-The model always picks one of the three classes. It cannot recognise other diseases or images that aren't corn leaves.
-"""
-
-ARTICLE = """
-*This is a learning demo, **not** a substitute for advice from an agronomist or your local
-agricultural office. Don't make crop treatment decisions based on it.*
-"""
-
-demo = gr.Interface(
-    fn=predict,
-    inputs=gr.Image(type="pil", label="Corn leaf photo"),
-    outputs=[gr.Label(num_top_classes=3, label="Prediction"), gr.Markdown()],
-    title="🌽 Corn Leaf Disease Classifier",
-    description=DESCRIPTION,
-    article=ARTICLE,
-    examples=EXAMPLES or None,
-    flagging_mode="never",
+st.title("🌽 Corn Leaf Disease Classifier")
+st.markdown(
+    "**Trained on PlantVillage lab images. Corn only, three classes: "
+    "Common rust, Northern Leaf Blight, Healthy.**"
+)
+st.caption(
+    "The training photos are single detached leaves on plain backgrounds under even lighting. "
+    "On real field photos the model is much less accurate: it got 5 of 10 right in testing, and "
+    "it usually mistakes real-world common rust for blight. It always picks one of the three "
+    "classes and cannot recognise other diseases or images that aren't corn leaves."
 )
 
-if __name__ == "__main__":
-    demo.launch()
+# --- input: upload, or pick one of the example test images -----------------
+examples = sorted(EXAMPLES_DIR.glob("*.jpg"))
+uploaded = st.file_uploader("Upload a corn leaf photo", type=["jpg", "jpeg", "png", "webp"])
+choice = st.selectbox(
+    "…or try an example from the PlantVillage test set",
+    ["(none)"] + [p.stem for p in examples],
+)
+
+image = None
+if uploaded is not None:
+    image = Image.open(uploaded)
+elif choice != "(none)":
+    image = Image.open(EXAMPLES_DIR / f"{choice}.jpg")
+
+# --- prediction -------------------------------------------------------------
+if image is not None:
+    model, class_names = get_model()
+    probs = inference.predict(model, class_names, image)
+    top_label, top_p = next(iter(probs.items()))
+
+    left, right = st.columns([1, 1])
+    with left:
+        st.image(image, caption="Input", width="stretch")
+    with right:
+        st.subheader(top_label)
+        # All three classes, highest first, each with its own bar.
+        for label, p in probs.items():
+            st.write(f"{label}: **{p:.1%}**")
+            st.progress(p)
+
+    if top_p < inference.LOW_CONFIDENCE:
+        # WHY: softmax ALWAYS produces three numbers that sum to 1, even for a
+        # photo of a cat. The model cannot say "I don't know", so the UI must.
+        st.warning(
+            f"**Uncertain ({top_p:.0%} top confidence).** The model isn't sure. This may not be "
+            "a single corn leaf, or it may be a disease the model was never trained on. "
+            "Don't rely on this result.",
+            icon="⚠️",
+        )
+    else:
+        st.info(
+            f"Top prediction confidence: {top_p:.0%}. High confidence does **not** mean correct: "
+            "in real-world testing, every wrong answer had over 60% confidence."
+        )
+
+st.divider()
+st.caption(
+    "This is a learning demo, **not** a substitute for advice from an agronomist or your local "
+    "agricultural office. Don't make crop treatment decisions based on it. "
+    "[Source code and full evaluation](https://github.com/HansTeee/corn-leaf-disease-classifier)"
+)

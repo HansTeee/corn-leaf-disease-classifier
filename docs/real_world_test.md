@@ -10,7 +10,7 @@ The model reached 97.14% on PlantVillage's held-out test set. This page checks h
   - 1 was excluded because its leaves are curled by heat stress, so it isn't a fair "healthy" example.
 - **Selection:** 10 of the remaining 25 were picked as photos a person might plausibly upload (4 rust, 3 blight, 3 healthy). This was also done before seeing any predictions.
 - **Selection-bias check:** all 25 eligible photos were also run and are reported below.
-- **Method:** predictions come from the app's own `predict()` function, so preprocessing is identical to the deployed app.
+- **Method:** predictions come from `predict()` in `src/inference.py`, the same function the deployed app calls, so preprocessing is identical.
 
 ![Results grid](real_world_results.png)
 

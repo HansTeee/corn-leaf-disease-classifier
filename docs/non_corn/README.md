@@ -1,6 +1,6 @@
 # Non-corn inputs (Phase 3 test)
 
-Images that are not corn leaves, sent to the running app (`python app.py`) on 2026-11-09
+Images that are not corn leaves, sent to the running app on 2026-11-09 (first built with Gradio; the current Streamlit app uses the same prediction code in `src/inference.py` and gives identical numbers)
 with the model in `models/corn_disease_model.keras`. Both images ship with matplotlib's
 sample data (`grace_hopper.jpg` is a public-domain US Navy photo).
 

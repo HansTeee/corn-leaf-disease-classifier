@@ -1,21 +1,8 @@
----
-title: Corn Leaf Disease Classifier
-emoji: 🌽
-colorFrom: green
-colorTo: yellow
-sdk: gradio
-sdk_version: 6.31.0
-python_version: "3.13"
-app_file: app.py
-pinned: false
-license: mit
----
-
 # 🌽 Corn Leaf Disease Classifier
 
 Upload a photo of a corn leaf and get a probability for **Common rust**, **Northern Leaf Blight** or **Healthy**.
 
-**▶ Live demo: [huggingface.co/spaces/HansTee89411/corn-leaf-disease-classifier](https://huggingface.co/spaces/HansTee89411/corn-leaf-disease-classifier)**
+**▶ Live demo: [corn-leaf-disease-classifier.streamlit.app](https://corn-leaf-disease-classifier.streamlit.app)**
 
 ![The app in use](docs/screenshot.png)
 
@@ -142,7 +129,7 @@ Code and model: [MIT](LICENSE). The photos in `docs/real_world/` and `docs/non_c
 ```bash
 python -m venv .venv && .venv\Scripts\activate      # Windows
 pip install -r requirements.txt
-python app.py                                         # http://127.0.0.1:7860
+streamlit run app.py                                  # http://localhost:8501
 ```
 
 To reproduce training, download PlantVillage into `data/` (not committed) and run `python -m src.eda`, then `python -m src.train --quick`, then `python -m src.train`. Install the extra training packages with `pip install -r requirements-train.txt`.
@@ -150,7 +137,8 @@ To reproduce training, download PlantVillage into `data/` (not committed) and ru
 ## Project layout
 
 ```
-app.py              Gradio app
+app.py              Streamlit app (UI only)
+src/inference.py    model loading + preprocessing + predict, shared by the app and the tests
 src/config.py       class names, image size, paths, SEED=42
 src/data.py         grouped train/val/test split, background fix
 src/eda.py          Phase 1 data exploration
