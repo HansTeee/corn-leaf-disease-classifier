@@ -133,6 +133,10 @@ PlantVillage contains **no rice, banana, mango or coconut**, the crops that matt
 
 **A rice leaf disease classifier trained on a rice-specific dataset, ideally field-condition photos taken in actual paddies** rather than lab shots. The real-world test above shows why field images matter: training data photographed in one controlled way produces a model that fails on everything else. Rice is the most important crop in the Philippines, and a model that works on field photos is the version of this project that would actually help farmers. The leakage checks, grouped split and shortcut test from this project carry over directly.
 
+## License
+
+Code and model: [MIT](LICENSE). The photos in `docs/real_world/` and `docs/non_corn/` are third-party works under their own licences; see [docs/real_world_test.md](docs/real_world_test.md#image-credits) and [docs/non_corn/README.md](docs/non_corn/README.md).
+
 ## Run it locally
 
 ```bash
