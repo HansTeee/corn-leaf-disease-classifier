@@ -77,6 +77,34 @@ The [10 most confidently wrong predictions](docs/confident_mistakes.png) fall in
 - **Rust and blight confused with each other.** Many PlantVillage leaves carry both rust pustules and blight lesions, so even the labels are ambiguous.
 - **Blight close-ups called "Healthy".** The model partly learned "close-up = healthy" from the dataset's framing.
 
+## Evaluation
+
+Re-run on 2026-11-18 with the saved model `models/corn_disease_model.keras`. Nothing was retrained.
+
+| Metric | PlantVillage test split | Real-world photos |
+|---|---|---|
+| Images | 490 | 10 |
+| Accuracy | **97.14%** | **50.0%** (5/10) |
+| Macro F1 | 0.971 | 0.417 |
+| Recall: Common rust | 0.966 | 0.00 (0/4) |
+| Recall: Northern Leaf Blight | 0.945 | 0.67 (2/3) |
+| Recall: Healthy | 1.000 | 1.00 (3/3) |
+| ms per image (CPU, batch 32, `evaluate_model.py`) | 32.1 | 140.0* |
+
+\* Only 10 images in one batch, so the timing is dominated by the first-call warm-up. Use the test-split figure for speed.
+
+- **Test split:** `python -m src.export_test_split` rebuilds the held-out split with the same functions and seed as training. It checks that none of the 490 files, photo groups or cut-out versions appear in train, and that the split is file-for-file identical to the one training wrote. Using the training pipeline (including the black-to-grey background fill) reproduces 97.14% (476/490) exactly. `evaluate_model.py` reports 97.76% on the same images because it skips the background fill and uses a different resize. That leaves the black-background cue in rust images, so 97.14% is the honest number.
+- **Real-world photos:** the 10 Wikimedia Commons photos in `docs/real_world/` ([sources](docs/real_world_test.md)). An MD5 check against all 3,339 PlantVillage images found no exact duplicates. `evaluate_model.py` and the app's own `predict()` give the same 5/10.
+
+![Real-world confusion matrix](docs/confusion_matrix_real_world.png)
+
+**What the 5 real-world failures have in common:**
+- All 4 rust photos failed. 3 of them are leaves photographed on the plant, in daylight, with field or ground in the background, and all 3 were called "Northern Leaf Blight" at 76.7–99.7% confidence. PlantVillage has no rust photographed this way.
+- The other 2 failures (a macro close-up showing only 4–5 rust pustules, and a blight leaf scanned on a pale-blue background) were called "Healthy". In both, the lesions cover a small part of a mostly green frame.
+- Every failure was confident: 73.1–99.7% in `evaluate_model.py`, 66.5–96.2% in the app.
+
+**Why the two numbers differ:** the test split comes from the same lab setup as training (detached leaves, uniform boards, even lighting). The real-world photos don't, so the 97% → 50% drop measures how poorly the model generalizes from lab images to field photos. With only 10 photos, 50% is a rough estimate.
+
 ## Limitations
 
 **PlantVillage vs real-world accuracy: 97% drops to 50%.**
@@ -143,6 +171,8 @@ src/config.py       class names, image size, paths, SEED=42
 src/data.py         grouped train/val/test split, background fix
 src/eda.py          Phase 1 data exploration
 src/train.py        two-stage MobileNetV2 training + evaluation + shortcut test
+src/export_test_split.py  copies the held-out test split to data/test/ (same split as training)
+evaluate_model.py   standalone evaluation on any folder-per-class image set
 models/             trained model, class_names.json, metrics.json
 docs/               charts, examples, non-corn test, real-world test
 ```
