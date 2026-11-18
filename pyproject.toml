@@ -1,0 +1,13 @@
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+extend-exclude = ["data", "results", "models"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]  # pycodestyle errors/warnings, pyflakes, import order
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+filterwarnings = ["ignore::DeprecationWarning"]

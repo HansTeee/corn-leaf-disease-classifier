@@ -83,7 +83,8 @@ def load_class_names(classes_path, data_dir):
 def collect_images(data_dir, class_names):
     """Return list of (path, true_index). Folders not in class_names are skipped with a warning."""
     import re
-    norm = lambda s: re.sub(r"[^a-z0-9]", "", s.lower())  # "Corn_(maize)___Common_rust_" -> "cornmaizecommonrust"
+    def norm(s):  # "Corn_(maize)___Common_rust_" -> "cornmaizecommonrust"
+        return re.sub(r"[^a-z0-9]", "", s.lower())
     items = []
     lower_map = {c.lower(): i for i, c in enumerate(class_names)}
     for sub in sorted(Path(data_dir).iterdir()):
@@ -109,9 +110,7 @@ def main():
     args = parse_args()
     os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")  # quieter TensorFlow logs
     import tensorflow as tf
-
-    from sklearn.metrics import (accuracy_score, classification_report,
-                                 confusion_matrix, f1_score)
+    from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
 
     if not Path(args.model).exists():
         sys.exit(f"[error] Model not found: {args.model}  (run  dir models  to see the file name)")

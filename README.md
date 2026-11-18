@@ -1,5 +1,7 @@
 # 🌽 Corn Leaf Disease Classifier
 
+[![CI/CD](https://github.com/HansTeee/corn-leaf-disease-classifier/actions/workflows/ci.yml/badge.svg)](https://github.com/HansTeee/corn-leaf-disease-classifier/actions/workflows/ci.yml)
+
 Upload a photo of a corn leaf and get a probability for **Common rust**, **Northern Leaf Blight** or **Healthy**.
 
 **▶ Live demo: [corn-leaf-disease-classifier.streamlit.app](https://corn-leaf-disease-classifier.streamlit.app)**
@@ -148,6 +150,28 @@ PlantVillage contains **no rice, banana, mango or coconut**, the crops that matt
 
 **A rice leaf disease classifier trained on a rice-specific dataset, ideally field-condition photos taken in actual paddies** rather than lab shots. The real-world test above shows why field images matter: training data photographed in one controlled way produces a model that fails on everything else. Rice is the most important crop in the Philippines, and a model that works on field photos is the version of this project that would actually help farmers. The leakage checks, grouped split and shortcut test from this project carry over directly.
 
+## Serving and CI/CD
+
+```
+ browser ──► Streamlit UI (:8501) ──HTTP──► FastAPI /predict (:8000) ──► src/inference.py ──► MobileNetV2
+             └──────────────────────────── one Docker container ───────────────────────────┘
+```
+
+- **FastAPI** (`api/main.py`): `GET /health` and `POST /predict` (multipart image upload). It returns all three probabilities, highest first, plus a `low_confidence` flag. Bad uploads get a 400 instead of a crash. Interactive docs are at `/docs`.
+- **Streamlit** (`app.py`) calls the API when `API_URL` is set (as in Docker). Without it, it loads the model itself, so the Streamlit Community Cloud demo still works. Both paths run the same `src/inference.py`.
+- **Docker** (`Dockerfile`, `docker/start.sh`): `python:3.13-slim`, non-root user, health check. It starts the API, waits until the model has loaded, then starts the UI.
+
+**Pipeline** (`.github/workflows/ci.yml`) runs on every push and pull request:
+
+| Stage | What it does | On failure |
+|---|---|---|
+| 1. Lint | `ruff check` (pycodestyle, pyflakes, import order) | stops here |
+| 2. Tests | `pytest`: grouped-split leakage, preprocessing, model sanity and quality gate, API, Streamlit UI | stops here |
+| 3. Build | `docker build`, start the container, call `/health` and `/predict` and check the answers | stops here |
+| 4. Deploy | pushes to `main` only: builds and publishes the image to GitHub Container Registry as `ghcr.io/hansteee/corn-leaf-disease-classifier` (tags `latest` and the commit SHA) | job fails |
+
+Each stage `needs` the one before it, so a single failing test means nothing is deployed. The tests include a quality gate: the committed model must have ≥95% test accuracy on the 490-image split, must classify the six known test examples correctly, and must still score the 5/10 that this README reports on the real-world photos. A new model that changes that number fails CI until the README is updated.
+
 ## License
 
 Code and model: [MIT](LICENSE). The photos in `docs/real_world/` and `docs/non_corn/` are third-party works under their own licences; see [docs/real_world_test.md](docs/real_world_test.md#image-credits) and [docs/non_corn/README.md](docs/non_corn/README.md).
@@ -158,14 +182,29 @@ Code and model: [MIT](LICENSE). The photos in `docs/real_world/` and `docs/non_c
 python -m venv .venv && .venv\Scripts\activate      # Windows
 pip install -r requirements.txt
 streamlit run app.py                                  # http://localhost:8501
+uvicorn api.main:app --port 8000                      # API only: http://localhost:8000/docs
 ```
+
+With Docker (CI publishes this image to GHCR on every green push to `main`):
+
+```bash
+docker build -t corn-classifier .
+docker run -p 8501:8501 -p 8000:8000 corn-classifier  # UI :8501, API :8000
+curl -F file=@docs/examples/rust_1.jpg localhost:8000/predict
+```
+
+Lint and tests: `pip install -r requirements-dev.txt`, then `ruff check .` and `pytest`.
 
 To reproduce training, download PlantVillage into `data/` (not committed) and run `python -m src.eda`, then `python -m src.train --quick`, then `python -m src.train`. Install the extra training packages with `pip install -r requirements-train.txt`.
 
 ## Project layout
 
 ```
-app.py              Streamlit app (UI only)
+app.py              Streamlit app (UI; calls the API when API_URL is set)
+api/main.py         FastAPI service: /health, /predict
+Dockerfile, docker/ container running API + UI
+.github/workflows/  CI/CD: lint -> tests -> Docker build -> publish to GHCR
+tests/              pytest suite (split, preprocessing, model, API, UI)
 src/inference.py    model loading + preprocessing + predict, shared by the app and the tests
 src/config.py       class names, image size, paths, SEED=42
 src/data.py         grouped train/val/test split, background fix

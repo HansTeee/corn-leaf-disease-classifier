@@ -7,8 +7,11 @@ WHY Streamlit (not Gradio): Hugging Face Spaces now charges for hosting Gradio
 apps, while Streamlit Community Cloud hosts Streamlit apps for free, straight
 from the GitHub repo.
 """
+import io
+import os
 from pathlib import Path
 
+import requests
 import streamlit as st
 from PIL import Image
 
@@ -16,6 +19,12 @@ from src import inference
 
 ROOT = Path(__file__).resolve().parent
 EXAMPLES_DIR = ROOT / "docs" / "examples"
+
+# WHY optional: in the Docker image the model runs in the
+# FastAPI service and this UI calls it over HTTP (API_URL is set there). On
+# Streamlit Community Cloud there is no separate API process, so the app loads
+# the model itself. Both paths use src/inference.py, so the numbers are identical.
+API_URL = os.environ.get("API_URL", "").rstrip("/")
 
 st.set_page_config(page_title="Corn Leaf Disease Classifier", page_icon="🌽", layout="centered")
 
@@ -52,16 +61,31 @@ choice = st.selectbox(
     ["(none)"] + [p.stem for p in examples],
 )
 
-image = None
+image_bytes = None
 if uploaded is not None:
-    image = Image.open(uploaded)
+    image_bytes = uploaded.getvalue()
 elif choice != "(none)":
-    image = Image.open(EXAMPLES_DIR / f"{choice}.jpg")
+    image_bytes = (EXAMPLES_DIR / f"{choice}.jpg").read_bytes()
+image = Image.open(io.BytesIO(image_bytes)) if image_bytes is not None else None
+
+
+def predict_probs(data: bytes, img: Image.Image) -> dict:
+    """{display_name: probability}, highest first - from the API if configured, else locally."""
+    if API_URL:
+        resp = requests.post(f"{API_URL}/predict", files={"file": ("image", data)}, timeout=60)
+        resp.raise_for_status()
+        return resp.json()["probabilities"]
+    model, class_names = get_model()
+    return inference.predict(model, class_names, img)
+
 
 # --- prediction -------------------------------------------------------------
 if image is not None:
-    model, class_names = get_model()
-    probs = inference.predict(model, class_names, image)
+    try:
+        probs = predict_probs(image_bytes, image)
+    except requests.RequestException as e:
+        st.error(f"The prediction service is unavailable ({e.__class__.__name__}). Try again in a moment.")
+        st.stop()
     top_label, top_p = next(iter(probs.items()))
 
     left, right = st.columns([1, 1])

@@ -14,7 +14,6 @@ The test split never gets cut-out swaps (config.CUTOUT_SPLITS = train, val), so
 the test files are exactly the raw paths returned by group_split.
 """
 import shutil
-from pathlib import Path
 
 from src import config
 from src.data import check_no_group_overlap, cutout_path, group_key, group_split, list_images

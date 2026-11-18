@@ -1,0 +1,11 @@
+.venv/
+.git/
+.github/
+data/
+results/
+models/checkpoints/
+models/quick/
+__pycache__/
+*.pyc
+*.log
+tests/
